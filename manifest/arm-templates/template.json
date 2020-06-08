@@ -1,0 +1,218 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "dnszones_test_aks_dev_name": {
+            "defaultValue": "test.aks.dev",
+            "type": "String"
+        },
+        "storageAccounts_sskstorageaccount1_name": {
+            "defaultValue": "sskstorage",
+            "type": "String"
+        },
+        "registries_StupidSimpleKubernetesContainerRegistry_name": {
+            "defaultValue": "StupidSimpleKubernetesContainerRegistry",
+            "type": "String"
+        },
+        "managedClusters_StupidSimpleKubernetesCluster_name": {
+            "defaultValue": "StupidSimpleKubernetesCluster",
+            "type": "String"
+        },
+        "publicIPAddresses_4428dea2_bed0_4b91_9d85_94ddb146b3b7_externalid": {
+            "defaultValue": "/subscriptions/bceb2d54-8ed8-44a8-8b0c-836ae7c2dbb1/resourceGroups/MC_StupidSimpleKubernetes_StupidSimpleKubernetesCluster_eastus2/providers/Microsoft.Network/publicIPAddresses/4428dea2-bed0-4b91-9d85-94ddb146b3b7",
+            "type": "String"
+        }
+    },
+    "variables": {
+    },
+    "resources": [
+        {
+            "type": "Microsoft.ContainerRegistry/registries",
+            "apiVersion": "2019-12-01-preview",
+            "name": "[parameters('registries_StupidSimpleKubernetesContainerRegistry_name')]",
+            "location": "eastus2",
+            "sku": {
+                "name": "Basic",
+                "tier": "Basic"
+            }
+        },
+        {
+            "type": "Microsoft.ContainerService/managedClusters",
+            "apiVersion": "2020-03-01",
+            "name": "[parameters('managedClusters_StupidSimpleKubernetesCluster_name')]",
+            "location": "eastus2",
+            "sku": {
+                "name": "Basic",
+                "tier": "Free"
+            },
+            "properties": {
+                "kubernetesVersion": "1.15.10",
+                "dnsPrefix": "[concat(parameters('managedClusters_StupidSimpleKubernetesCluster_name'), '-dns')]",
+                "agentPoolProfiles": [
+                    {
+                        "name": "agentpool",
+                        "count": 1,
+                        "vmSize": "Standard_B2s",
+                        "osDiskSizeGB": 100,
+                        "maxPods": 110,
+                        "type": "VirtualMachineScaleSets",
+                        "orchestratorVersion": "1.15.10",
+                        "nodeLabels": {
+                        },
+                        "mode": "System",
+                        "osType": "Linux"
+                    }
+                ],
+                "servicePrincipalProfile": {
+                    "clientId": "3d5c9950-1387-471d-b58c-294380aaa195",
+                    "secret": "c5e7d85a-f827-4634-a40f-9b1bfc385cec"
+                },
+                "addonProfiles": {
+                    "httpApplicationRouting": {
+                        "enabled": false
+                    }
+                },
+                "nodeResourceGroup": "[concat('MC_FreeTrialResourceGroup_', parameters('managedClusters_StupidSimpleKubernetesCluster_name'), '_eastus2')]",
+                "enableRBAC": true,
+                "networkProfile": {
+                    "networkPlugin": "kubenet",
+                    "loadBalancerSku": "Standard",
+                    "loadBalancerProfile": {
+                        "managedOutboundIPs": {
+                            "count": 1
+                        },
+                        "effectiveOutboundIPs": [
+                            {
+                                "id": "[parameters('publicIPAddresses_4428dea2_bed0_4b91_9d85_94ddb146b3b7_externalid')]"
+                            }
+                        ]
+                    },
+                    "podCidr": "10.244.0.0/16",
+                    "serviceCidr": "10.0.0.0/16",
+                    "dnsServiceIP": "10.0.0.10",
+                    "dockerBridgeCidr": "172.17.0.1/16",
+                    "outboundType": "loadBalancer"
+                },
+                "apiServerAccessProfile": {
+                    "enablePrivateCluster": false
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Network/dnszones",
+            "apiVersion": "2018-05-01",
+            "name": "[parameters('dnszones_test_aks_dev_name')]",
+            "location": "global",
+            "properties": {
+                "zoneType": "Public"
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts",
+            "apiVersion": "2019-06-01",
+            "name": "[parameters('storageAccounts_sskstorageaccount1_name')]",
+            "location": "eastus2",
+            "sku": {
+                "name": "Standard_RAGRS",
+                "tier": "Standard"
+            },
+            "kind": "StorageV2",
+            "properties": {
+                "networkAcls": {
+                    "bypass": "AzureServices",
+                    "virtualNetworkRules": [
+                    ],
+                    "ipRules": [
+                    ],
+                    "defaultAction": "Allow"
+                },
+                "supportsHttpsTrafficOnly": true,
+                "encryption": {
+                    "services": {
+                        "file": {
+                            "keyType": "Account",
+                            "enabled": true
+                        },
+                        "blob": {
+                            "keyType": "Account",
+                            "enabled": true
+                        }
+                    },
+                    "keySource": "Microsoft.Storage"
+                },
+                "accessTier": "Hot"
+            }
+        },
+        {
+            "type": "Microsoft.ContainerService/managedClusters/agentPools",
+            "apiVersion": "2020-03-01",
+            "name": "[concat(parameters('managedClusters_StupidSimpleKubernetesCluster_name'), '/agentpool')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.ContainerService/managedClusters', parameters('managedClusters_StupidSimpleKubernetesCluster_name'))]"
+            ],
+            "properties": {
+                "count": 1,
+                "vmSize": "Standard_B2s",
+                "osDiskSizeGB": 100,
+                "maxPods": 110,
+                "type": "VirtualMachineScaleSets",
+                "orchestratorVersion": "1.15.10",
+                "nodeLabels": {
+                },
+                "mode": "System",
+                "osType": "Linux"
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts/blobServices",
+            "apiVersion": "2019-06-01",
+            "name": "[concat(parameters('storageAccounts_sskstorageaccount1_name'), '/default')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccounts_sskstorageaccount1_name'))]"
+            ],
+            "sku": {
+                "name": "Standard_RAGRS",
+                "tier": "Standard"
+            },
+            "properties": {
+                "cors": {
+                    "corsRules": [
+                    ]
+                },
+                "deleteRetentionPolicy": {
+                    "enabled": false
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts/fileServices",
+            "apiVersion": "2019-06-01",
+            "name": "[concat(parameters('storageAccounts_sskstorageaccount1_name'), '/default')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccounts_sskstorageaccount1_name'))]"
+            ],
+            "sku": {
+                "name": "Standard_RAGRS",
+                "tier": "Standard"
+            },
+            "properties": {
+                "cors": {
+                    "corsRules": [
+                    ]
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts/fileServices/shares",
+            "apiVersion": "2019-06-01",
+            "name": "[concat(parameters('storageAccounts_sskstorageaccount1_name'), '/default/user-mongo-db')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts/fileServices', parameters('storageAccounts_sskstorageaccount1_name'), 'default')]",
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccounts_sskstorageaccount1_name'))]"
+            ],
+            "properties": {
+                "shareQuota": 1
+            }
+        }
+    ]
+}

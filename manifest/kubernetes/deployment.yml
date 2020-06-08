@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-db-deployment
+spec:
+  selector:
+    matchLabels:
+      app: user-db-app
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: user-db-app
+    spec:
+      containers:
+        - name: mongo
+          image: stupidsimplekubernetescontainerregistry.azurecr.io/mongo:3.6.4
+          command:
+            - mongod
+            - "--bind_ip_all"
+            - "--directoryperdb"
+          ports:
+            - containerPort: 27017
+          volumeMounts:
+            - name: data
+              mountPath: /data/db
+          resources:
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: static-persistence-volume-claim-mongo
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: node-user-service-deployment
+spec:
+  selector:
+    matchLabels:
+      app: node-user-service-pod
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "80"
+      labels:
+        app: node-user-service-pod
+    spec:
+      containers:
+        - name: node-user-service-container
+          image: stupidsimplekubernetescontainerregistry.azurecr.io/node-user-service:dev
+          resources:
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80

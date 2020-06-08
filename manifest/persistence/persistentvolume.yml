@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: static-persistence-volume-mongo
+  labels:
+    storage: azurefile
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteMany
+  storageClassName: azurefilestorage
+  azureFile:
+    secretName: static-persistence-secret-mongo
+    shareName: user-mongo-db
+    readOnly: false
